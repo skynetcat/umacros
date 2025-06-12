@@ -30,16 +30,31 @@ pArg () {
 # Print colored string along with optional non-colored
 # =====================================================
 paint () {
+  #local tmpColorArgs="${@//--/$'\n'--}"
+  #local tmpColorArgs_2="${tmpColorArgs// -/$'\n'-}"
+  #IFS=$'\n' read -d "" -ra colorArgs <<< "${tmpColorArgs_2}"
+
+  #local bSeq="\x01\033["
+  #local eSeq="\x02"
+
+  #case arg in "${colorArgs[@]}"
+  #  "-fg") 
+  #    local fgSeq="${bSeq}"
+  #    ;;
+  #  "-bg") ;;
+  #  "-m") ;;
+  #esac
+
   local output="$1"
   local color="$2"
   local message="$3"
   local rawMessage="$4"
-  local resetSeq="\001\033[0m\002"
+  local resetSeq="\x01\033[0m\x02"
 
   case "$output" in
     fg) : "3" ;;
     bg) : "4" ;;
-    *) echo "ERROR: '$output' is an unknown color output" ;;
+    *) echo "[ERR] '$output' is an unknown color output" ;;
   esac
   local output="$_"
   
@@ -52,7 +67,7 @@ paint () {
     purple) : 5 ;;
     cyan)   : 6 ;;
     white)  : 7 ;;
-    *) echo "ERROR: '$color' is an unknown color" ;;
+    *) echo "[ERR] '$color' is an unknown color" ;;
   esac
   local color="$_"
 
@@ -94,12 +109,50 @@ fzfModeBuild () {
 
   local fzfMode=(
     "i:enable-search+$fzfNormalUnbind+change-prompt($fzfInsertMsg)+unbind(i)"
-    "esc:disable-search+$fzfNormalRebind+change-prompt($fzfNormalMsg)+unbind(i)"
+    "esc:disable-search+$fzfNormalRebind+change-prompt($fzfNormalMsg)+rebind(i)"
+    "change:first"
     )
   
   fzfBindings+=( "${fzfMode[@]}" )
    
   local tmpBinds="${fzfBindings[@]// /SPACE}"
+  local tmpBinds_2="${tmpBinds// /,}"
+  
+  allFzfBinds="${tmpBinds_2//SPACE/ }"
+}
+
+fzfMenu () {
+  fzfNormalPrompt="$(paint bg blue " N ") $1"
+  fzfInsertPrompt="$(paint bg purple " I ") $1"
+  
+  local menuFzfBindings=(
+    "s:toggle"
+    "p:toggle-in"
+    "n:toggle-out"
+    "a:select-all"
+    "d:deselect-all"
+    "g:first"
+    "G:last"
+    "j:down"
+    "k:up"
+    "q:abort"
+  )
+  
+  local tmpFzfNormalUnbind=(${menuFzfBindings[@]/:*/)})
+  local tmpFzfNormalUnbind_2="${tmpFzfNormalUnbind[@]/#/unbind\(}"
+  
+  local fzfNormalUnbind="${tmpFzfNormalUnbind_2// /+}"
+  local fzfNormalRebind="${fzfNormalUnbind//unbind/rebind}"
+
+  local fzfMode=(
+    "i:enable-search+$fzfNormalUnbind+unbind(i)+change-prompt($fzfInsertPrompt)"
+    "esc:disable-search+$fzfNormalRebind+unbind(i)+change-prompt($fzfNormalPrompt)"
+    "change:first"
+    )
+  
+  local menuFzfBindings+=( "${fzfMode[@]}" )
+   
+  local tmpBinds="${menuFzfBindings[@]// /SPACE}"
   local tmpBinds_2="${tmpBinds// /,}"
   
   allFzfBinds="${tmpBinds_2//SPACE/ }"
